@@ -118,3 +118,19 @@ uploads/*.png
 uploads/*.jpg
 uploads/*.jpeg
 instance/*.db
+
+# User uploads and test data
+uploads/sketch_*.png
+uploads/test_*.png
+
+# Development database
+instance/mood_app.db
+
+# ML model cache
+ml/__pycache__/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store.?
+*.log
