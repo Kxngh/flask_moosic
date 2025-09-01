@@ -8,7 +8,15 @@ import random
 from PIL import Image, ImageOps, ImageStat
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mood_app.db'
+
+# Database configuration - use PostgreSQL in production, SQLite in development
+if os.environ.get('DATABASE_URL'):
+    # Production database (PostgreSQL on Render)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
+else:
+    # Development database (SQLite)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mood_app.db'
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -153,4 +161,8 @@ def export_csv():
     return send_file(io.BytesIO(si.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='history.csv')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    # Get port from environment variable or use default
+    port = int(os.environ.get('PORT', 5000))
+    # Disable debug in production
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
