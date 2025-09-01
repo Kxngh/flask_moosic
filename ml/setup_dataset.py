@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-"""
-Quick dataset setup script - creates dataset structure and can generate simple synthetic doodles for testing
-"""
+
 
 import os
 import numpy as np
@@ -9,7 +6,6 @@ from PIL import Image, ImageDraw
 import random
 
 def create_dataset_structure(output_path):
-    """Create the dataset folder structure"""
     moods = ['happy', 'calm', 'sad', 'energetic']
     
     for mood in moods:
@@ -21,25 +17,21 @@ def create_dataset_structure(output_path):
     return output_path
 
 def generate_simple_synthetic_doodles(dataset_path, samples_per_mood=50):
-    """Generate simple synthetic doodles for initial testing (NOT for production)"""
-    
     print("🎨 Generating synthetic doodles for testing...")
     print("⚠️  Note: These are simple shapes for testing only. Replace with real doodles!")
     
     def draw_happy_doodle():
         img = Image.new('RGB', (64, 64), 'white')
         draw = ImageDraw.Draw(img)
-        # Smiley face
         draw.ellipse([10, 10, 54, 54], outline='black', width=2)
-        draw.ellipse([20, 20, 25, 25], fill='black')  # Left eye
-        draw.ellipse([39, 20, 44, 25], fill='black')  # Right eye
-        draw.arc([20, 25, 44, 45], 0, 180, fill='black', width=2)  # Smile
+        draw.ellipse([20, 20, 25, 25], fill='black')
+        draw.ellipse([39, 20, 44, 25], fill='black')
+        draw.arc([20, 25, 44, 45], 0, 180, fill='black', width=2)
         return img
     
     def draw_calm_doodle():
         img = Image.new('RGB', (64, 64), 'white')
         draw = ImageDraw.Draw(img)
-        # Gentle waves
         for y in range(20, 50, 8):
             for x in range(0, 64, 4):
                 draw.ellipse([x, y + random.randint(-2, 2), x+2, y+2], fill='black')
@@ -48,19 +40,16 @@ def generate_simple_synthetic_doodles(dataset_path, samples_per_mood=50):
     def draw_sad_doodle():
         img = Image.new('RGB', (64, 64), 'white')
         draw = ImageDraw.Draw(img)
-        # Sad face
         draw.ellipse([10, 10, 54, 54], outline='black', width=2)
-        draw.ellipse([20, 20, 25, 25], fill='black')  # Left eye
-        draw.ellipse([39, 20, 44, 25], fill='black')  # Right eye
-        draw.arc([20, 35, 44, 55], 180, 360, fill='black', width=2)  # Frown
-        # Teardrops
+        draw.ellipse([20, 20, 25, 25], fill='black')
+        draw.ellipse([39, 20, 44, 25], fill='black')
+        draw.arc([20, 35, 44, 55], 180, 360, fill='black', width=2)
         draw.ellipse([18, 30, 22, 40], fill='blue')
         return img
     
     def draw_energetic_doodle():
         img = Image.new('RGB', (64, 64), 'white')
         draw = ImageDraw.Draw(img)
-        # Lightning bolt
         points = [(25, 5), (35, 5), (20, 35), (30, 35), (15, 60), (40, 25), (30, 25), (45, 5)]
         draw.polygon(points, fill='black')
         return img
@@ -77,23 +66,19 @@ def generate_simple_synthetic_doodles(dataset_path, samples_per_mood=50):
         print(f"Generating {samples_per_mood} {mood} doodles...")
         
         for i in range(samples_per_mood):
-            # Generate base doodle
+
             img = generator()
             
-            # Add some variation
             img_array = np.array(img)
             
-            # Random rotation
             angle = random.uniform(-10, 10)
             img = img.rotate(angle, fillcolor='white')
             
-            # Random noise
             img_array = np.array(img)
             noise = np.random.normal(0, 5, img_array.shape)
             img_array = np.clip(img_array + noise, 0, 255).astype(np.uint8)
             img = Image.fromarray(img_array)
             
-            # Save
             filename = f"synthetic_{mood}_{i:03d}.png"
             filepath = os.path.join(mood_dir, filename)
             img.save(filepath)
@@ -113,7 +98,6 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # Create dataset structure
     dataset_path = create_dataset_structure(args.output)
     
     if args.synthetic:

@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""
-Training script for the Sketch Mood CNN model
-Usage: python train_model.py --dataset_path /path/to/dataset
-"""
+
 
 import os
 import sys
@@ -10,13 +6,11 @@ import argparse
 from sklearn.model_selection import train_test_split
 import numpy as np
 
-# Add the parent directory to sys.path to import from ml module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ml.sketch_cnn_model import SketchMoodCNN
 
 def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=True):
-    """Train the sketch mood classification model"""
     
     print("🚀 Starting model training...")
     print(f"Dataset path: {dataset_path}")
@@ -26,10 +20,8 @@ def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=T
     print(f"Data augmentation: {augment}")
     print("-" * 50)
     
-    # Initialize model
     model = SketchMoodCNN()
     
-    # Load dataset
     print("📂 Loading dataset...")
     X, y = model.load_dataset_from_folder(dataset_path)
     
@@ -51,7 +43,7 @@ def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=T
     for mood, count in zip(unique, counts):
         print(f"  {mood}: {count} images")
     
-    # Data augmentation
+
     if augment and len(X) < 200:
         print("\n🔄 Applying data augmentation...")
         X, y = model.augment_data(X, y, augment_factor=max(1, 200 // len(X)))
@@ -62,7 +54,7 @@ def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=T
         for mood, count in zip(unique, counts):
             print(f"  {mood}: {count} images")
     
-    # Split dataset
+
     print(f"\n📊 Splitting dataset (test size: {test_size})...")
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=42, stratify=y
@@ -71,7 +63,7 @@ def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=T
     print(f"Training set: {len(X_train)} images")
     print(f"Test set: {len(X_test)} images")
     
-    # Train model
+
     print(f"\n🤖 Training model for {epochs} epochs...")
     history = model.train_model(
         X_train, y_train, 
@@ -80,7 +72,7 @@ def train_model(dataset_path, epochs=50, batch_size=32, test_size=0.2, augment=T
         batch_size=batch_size
     )
     
-    # Evaluate model
+
     print("\n📈 Evaluating model...")
     test_loss, test_accuracy = model.model.evaluate(X_test, np.eye(4)[model.label_encoder.transform(y_test)], verbose=0)
     print(f"Test Accuracy: {test_accuracy:.4f}")
@@ -101,7 +93,7 @@ def create_sample_dataset(output_path):
         mood_dir = os.path.join(output_path, mood)
         os.makedirs(mood_dir, exist_ok=True)
         
-        # Create instruction file
+
         instruction_file = os.path.join(mood_dir, 'README.txt')
         
         instructions = {

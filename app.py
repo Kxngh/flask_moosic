@@ -7,7 +7,6 @@ import io
 import random
 from PIL import Image, ImageOps, ImageStat
 
-# Import the TensorFlow CNN model
 try:
     from ml.sketch_cnn_model import get_model
     USE_TENSORFLOW = True
@@ -19,19 +18,15 @@ except ImportError as e:
 
 app = Flask(__name__)
 
-# Database configuration - use PostgreSQL in production, SQLite in development
 if os.environ.get('DATABASE_URL'):
-    # Production database (PostgreSQL on Render)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
 else:
-    # Development database (SQLite)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mood_app.db'
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Database Model
 class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -54,22 +49,17 @@ class History(db.Model):
             'relabel': self.relabel
         }
 
-# Initialize model based on availability
 if USE_TENSORFLOW:
     MODEL = get_model()
     print(f"🤖 Using TensorFlow CNN model")
 else:
-    # Fallback dummy model
     class DummyMoodModel:
         def __init__(self):
             pass
 
         def predict_from_pil(self, pil_img):
-            """Accepts a PIL grayscale image (64x64). Returns (mood, confidence)"""
-            # heuristic: mean brightness
             stat = ImageStat.Stat(pil_img)
             mean = stat.mean[0]
-            # mean near white -> calm/happy, near black -> energetic/sad randomly
             if mean > 220:
                 mood = random.choice(['calm','happy'])
                 conf = 0.6 + (mean - 220)/35 * 0.4
@@ -90,7 +80,6 @@ MOOD_AUDIO = {
     'energetic': ['static/audio/energetic1.mp3', 'static/audio/energetic2.mp3']
 }
 
-# Create tables
 with app.app_context():
     db.create_all()
 
@@ -109,30 +98,24 @@ def predict():
     if not data:
         return jsonify({'error': 'no image received'}), 400
 
-    # data is expected like: data:image/png;base64,AAAA...
     header, b64 = data.split(',', 1) if ',' in data else (None, data)
     image_bytes = base64.b64decode(b64)
 
-    # save original user submission
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
     image_path = os.path.join(app.config['UPLOAD_FOLDER'], f'sketch_{timestamp}.png')
     with open(image_path, 'wb') as f:
         f.write(image_bytes)
 
-    # Basic preprocessing for dummy model: resize + convert to gray
     img = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
-    # merge alpha onto white background
     background = Image.new('RGBA', img.size, (255, 255, 255, 255))
     image_merged = Image.alpha_composite(background, img).convert('RGB')
     image_resized = ImageOps.fit(image_merged, (64, 64)).convert('L')
 
-    # pass PIL image to model (dummy accepts PIL)
     mood, confidence = MODEL.predict_from_pil(image_resized)
 
     track = random.choice(MOOD_AUDIO.get(mood, []))
 
-    # Log to DB
     h = History(mood_pred=mood, confidence=float(confidence), track_path=track, image_path=image_path)
     db.session.add(h)
     db.session.commit()
@@ -182,7 +165,6 @@ def model_status():
     }
     
     if status['dataset_exists']:
-        # Count images in dataset
         dataset_info = {}
         for mood in ['happy', 'calm', 'sad', 'energetic']:
             mood_path = os.path.join('ml/dataset', mood)
@@ -208,8 +190,6 @@ def export_csv():
     return send_file(io.BytesIO(si.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='history.csv')
 
 if __name__ == '__main__':
-    # Get port from environment variable or use default
     port = int(os.environ.get('PORT', 5000))
-    # Disable debug in production
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
     app.run(host='0.0.0.0', port=port, debug=debug_mode)

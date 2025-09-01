@@ -17,37 +17,31 @@ class SketchMoodCNN:
         self.label_encoder_path = label_encoder_path
         self.model = None
         self.label_encoder = None
-        self.input_shape = (64, 64, 1)  # Grayscale images
+        self.input_shape = (64, 64, 1)
         self.mood_classes = ['happy', 'calm', 'sad', 'energetic']
         
-        # Try to load existing model, otherwise prepare for training
         self._load_or_create_model()
     
     def _create_model(self):
-        """Create a CNN architecture for sketch mood classification"""
         model = keras.Sequential([
-            # First Conv Block
             layers.Conv2D(32, (3, 3), activation='relu', input_shape=self.input_shape),
             layers.BatchNormalization(),
             layers.Conv2D(32, (3, 3), activation='relu'),
             layers.MaxPooling2D((2, 2)),
             layers.Dropout(0.25),
             
-            # Second Conv Block  
             layers.Conv2D(64, (3, 3), activation='relu'),
             layers.BatchNormalization(),
             layers.Conv2D(64, (3, 3), activation='relu'),
             layers.MaxPooling2D((2, 2)),
             layers.Dropout(0.25),
             
-            # Third Conv Block
             layers.Conv2D(128, (3, 3), activation='relu'),
             layers.BatchNormalization(),
             layers.Conv2D(128, (3, 3), activation='relu'),
             layers.MaxPooling2D((2, 2)),
             layers.Dropout(0.25),
             
-            # Classifier
             layers.Flatten(),
             layers.Dense(512, activation='relu'),
             layers.BatchNormalization(),
@@ -89,53 +83,42 @@ class SketchMoodCNN:
     def preprocess_image(self, image):
         """Preprocess image for model prediction"""
         if isinstance(image, str):
-            # If it's a base64 string
+
             header, b64 = image.split(',', 1) if ',' in image else (None, image)
             image_bytes = base64.b64decode(b64)
             image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
         
         if isinstance(image, Image.Image):
-            # Convert PIL image to numpy array
-            # Handle alpha channel by compositing on white background
             if image.mode == 'RGBA':
                 background = Image.new('RGBA', image.size, (255, 255, 255, 255))
                 image = Image.alpha_composite(background, image).convert('RGB')
             
-            # Resize and convert to grayscale
             image = ImageOps.fit(image, (64, 64)).convert('L')
             image_array = np.array(image)
         else:
-            # Assume it's already a numpy array
             image_array = image
         
-        # Normalize pixel values to [0, 1]
         image_array = image_array.astype('float32') / 255.0
         
-        # Add batch and channel dimensions
-        image_array = np.expand_dims(image_array, axis=-1)  # Add channel dimension
-        image_array = np.expand_dims(image_array, axis=0)   # Add batch dimension
+        image_array = np.expand_dims(image_array, axis=-1)
+        image_array = np.expand_dims(image_array, axis=0)
         
         return image_array
     
     def predict_from_pil(self, pil_img):
-        """Predict mood from PIL image (maintaining compatibility with existing code)"""
         try:
-            # Preprocess the image
             processed_image = self.preprocess_image(pil_img)
             
-            # Make prediction
             predictions = self.model.predict(processed_image, verbose=0)
             predicted_class_idx = np.argmax(predictions[0])
             confidence = float(predictions[0][predicted_class_idx])
             
-            # Get mood label
             mood = self.mood_classes[predicted_class_idx]
             
             return mood, confidence
             
         except Exception as e:
             print(f"Prediction error: {e}")
-            # Fallback to dummy prediction
             return self._dummy_prediction(pil_img)
     
     def _dummy_prediction(self, pil_img):
@@ -157,10 +140,8 @@ class SketchMoodCNN:
         return mood, min(max(conf, 0.0), 0.99)
     
     def train_model(self, X_train, y_train, X_val=None, y_val=None, epochs=50, batch_size=32):
-        """Train the model with provided data"""
         print(f"Training model with {len(X_train)} samples...")
         
-        # Convert string labels to categorical
         y_train_encoded = keras.utils.to_categorical(
             self.label_encoder.transform(y_train), 
             num_classes=len(self.mood_classes)
@@ -175,14 +156,12 @@ class SketchMoodCNN:
         else:
             validation_data = None
         
-        # Callbacks
         callbacks = [
             keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
             keras.callbacks.ReduceLROnPlateau(patience=5, factor=0.5),
             keras.callbacks.ModelCheckpoint(self.model_path, save_best_only=True)
         ]
         
-        # Train the model
         history = self.model.fit(
             X_train, y_train_encoded,
             epochs=epochs,
@@ -192,7 +171,7 @@ class SketchMoodCNN:
             verbose=1
         )
         
-        # Save label encoder
+
         os.makedirs(os.path.dirname(self.label_encoder_path), exist_ok=True)
         with open(self.label_encoder_path, 'wb') as f:
             pickle.dump(self.label_encoder, f)
@@ -212,7 +191,7 @@ class SketchMoodCNN:
                     if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                         img_path = os.path.join(mood_path, filename)
                         try:
-                            # Load and preprocess image
+
                             img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
                             img = cv2.resize(img, (64, 64))
                             img = img.astype('float32') / 255.0
@@ -234,17 +213,17 @@ class SketchMoodCNN:
         augmented_images = []
         augmented_labels = []
         
-        # Keep original data
+
         augmented_images.extend(images)
         augmented_labels.extend(labels)
         
-        # Apply augmentations
+
         for i in range(len(images)):
             img = images[i]
             label = labels[i]
             
             for _ in range(augment_factor):
-                # Random rotation
+
                 angle = np.random.uniform(-15, 15)
                 h, w = img.shape[:2]
                 center = (w // 2, h // 2)
@@ -252,31 +231,31 @@ class SketchMoodCNN:
                 rotated = cv2.warpAffine(img[:,:,0], rotation_matrix, (w, h))
                 rotated = np.expand_dims(rotated, axis=-1)
                 
-                # Random zoom
+
                 zoom_factor = np.random.uniform(0.9, 1.1)
                 h, w = rotated.shape[:2]
                 new_h, new_w = int(h * zoom_factor), int(w * zoom_factor)
                 resized = cv2.resize(rotated[:,:,0], (new_w, new_h))
                 
-                # Crop or pad to original size
+
                 if new_h > h or new_w > w:
-                    # Crop
+
                     start_y = (new_h - h) // 2
                     start_x = (new_w - w) // 2
                     cropped = resized[start_y:start_y+h, start_x:start_x+w]
                 else:
-                    # Pad
+
                     pad_y = (h - new_h) // 2
                     pad_x = (w - new_w) // 2
                     cropped = np.pad(resized, ((pad_y, h-new_h-pad_y), (pad_x, w-new_w-pad_x)), 'constant')
                 
                 cropped = np.expand_dims(cropped, axis=-1)
                 
-                # Random horizontal flip
+
                 if np.random.random() > 0.5:
                     cropped = np.fliplr(cropped)
                 
-                # Add noise
+
                 noise = np.random.normal(0, 0.02, cropped.shape)
                 noisy = np.clip(cropped + noise, 0, 1)
                 
@@ -285,7 +264,7 @@ class SketchMoodCNN:
         
         return np.array(augmented_images), np.array(augmented_labels)
 
-# Global instance for use in Flask app
+
 sketch_model = None
 
 def get_model():
