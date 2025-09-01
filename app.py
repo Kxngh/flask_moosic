@@ -7,6 +7,16 @@ import io
 import random
 from PIL import Image, ImageOps, ImageStat
 
+# Import the TensorFlow CNN model
+try:
+    from ml.sketch_cnn_model import get_model
+    USE_TENSORFLOW = True
+    print("✅ TensorFlow model loaded successfully")
+except ImportError as e:
+    print(f"⚠️  Could not import TensorFlow model: {e}")
+    print("Using fallback dummy model")
+    USE_TENSORFLOW = False
+
 app = Flask(__name__)
 
 # Database configuration - use PostgreSQL in production, SQLite in development
@@ -44,30 +54,35 @@ class History(db.Model):
             'relabel': self.relabel
         }
 
-# Dummy Model Class
-class DummyMoodModel:
-    def __init__(self):
-        pass
+# Initialize model based on availability
+if USE_TENSORFLOW:
+    MODEL = get_model()
+    print(f"🤖 Using TensorFlow CNN model")
+else:
+    # Fallback dummy model
+    class DummyMoodModel:
+        def __init__(self):
+            pass
 
-    def predict_from_pil(self, pil_img):
-        """Accepts a PIL grayscale image (64x64). Returns (mood, confidence)"""
-        # heuristic: mean brightness
-        stat = ImageStat.Stat(pil_img)
-        mean = stat.mean[0]
-        # mean near white -> calm/happy, near black -> energetic/sad randomly
-        if mean > 220:
-            mood = random.choice(['calm','happy'])
-            conf = 0.6 + (mean - 220)/35 * 0.4
-        elif mean > 120:
-            mood = random.choice(['happy','energetic'])
-            conf = 0.5 + (mean - 120)/100 * 0.5
-        else:
-            mood = random.choice(['sad','energetic'])
-            conf = 0.55
-        return mood, min(max(conf, 0.0), 0.99)
-
-# Initialize model and audio mappings
-MODEL = DummyMoodModel()
+        def predict_from_pil(self, pil_img):
+            """Accepts a PIL grayscale image (64x64). Returns (mood, confidence)"""
+            # heuristic: mean brightness
+            stat = ImageStat.Stat(pil_img)
+            mean = stat.mean[0]
+            # mean near white -> calm/happy, near black -> energetic/sad randomly
+            if mean > 220:
+                mood = random.choice(['calm','happy'])
+                conf = 0.6 + (mean - 220)/35 * 0.4
+            elif mean > 120:
+                mood = random.choice(['happy','energetic'])
+                conf = 0.5 + (mean - 120)/100 * 0.5
+            else:
+                mood = random.choice(['sad','energetic'])
+                conf = 0.55
+            return mood, min(max(conf, 0.0), 0.99)
+    
+    MODEL = DummyMoodModel()
+    print("⚠️  Using fallback dummy model")
 MOOD_AUDIO = {
     'happy': ['static/audio/happy1.mp3', 'static/audio/happy2.mp3'],
     'calm': ['static/audio/calm1.mp3', 'static/audio/calm2.mp3'],
@@ -149,6 +164,38 @@ def rate():
         entry.relabel = relabel
     db.session.commit()
     return jsonify({'ok': True, 'entry': entry.as_dict()})
+
+@app.route('/model-status')
+def model_status():
+    """Check model status and training information"""
+    status = {
+        'using_tensorflow': USE_TENSORFLOW,
+        'model_type': 'TensorFlow CNN' if USE_TENSORFLOW else 'Dummy Model',
+        'model_path': 'ml/sketch_mood_model.h5',
+        'model_exists': os.path.exists('ml/sketch_mood_model.h5'),
+        'dataset_path': 'ml/dataset',
+        'dataset_exists': os.path.exists('ml/dataset'),
+        'training_instructions': {
+            'setup_dataset': 'python ml/setup_dataset.py --output ml/dataset --synthetic',
+            'train_model': 'python ml/train_model.py --dataset_path ml/dataset'
+        }
+    }
+    
+    if status['dataset_exists']:
+        # Count images in dataset
+        dataset_info = {}
+        for mood in ['happy', 'calm', 'sad', 'energetic']:
+            mood_path = os.path.join('ml/dataset', mood)
+            if os.path.exists(mood_path):
+                image_count = len([f for f in os.listdir(mood_path) 
+                                 if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+                dataset_info[mood] = image_count
+            else:
+                dataset_info[mood] = 0
+        status['dataset_info'] = dataset_info
+        status['total_images'] = sum(dataset_info.values())
+    
+    return jsonify(status)
 
 @app.route('/export.csv')
 def export_csv():
