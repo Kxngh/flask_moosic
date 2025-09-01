@@ -290,7 +290,6 @@ function showResults(data) {
     document.getElementById('moodCard').style.display = 'block';
     
     document.getElementById('moodText').textContent = data.mood.charAt(0).toUpperCase() + data.mood.slice(1);
-    document.getElementById('confText').textContent = `Confidence: ${(data.confidence * 100).toFixed(1)}%`;
     
     // Set emoji based on mood
     const emojis = {

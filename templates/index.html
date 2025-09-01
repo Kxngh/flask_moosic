@@ -75,9 +75,6 @@
                     <div>
                       <span class="text-xl font-bold text-gray-800 dark:text-white capitalize">{{ entry.mood_pred }}</span>
                       <div class="flex items-center gap-4 mt-1">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">
-                          Confidence: <span class="font-semibold text-purple-600 dark:text-purple-400">{{ "%.1f"|format(entry.confidence * 100) }}%</span>
-                        </span>
                         {% if entry.rating %}
                           <span class="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
                             Rating: {% for i in range(entry.rating) %}⭐{% endfor %}
