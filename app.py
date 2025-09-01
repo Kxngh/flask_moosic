@@ -74,10 +74,10 @@ else:
     MODEL = DummyMoodModel()
     print("⚠️  Using fallback dummy model")
 MOOD_AUDIO = {
-    'happy': ['static/audio/happy1.mp3', 'static/audio/happy2.mp3'],
-    'calm': ['static/audio/calm1.mp3', 'static/audio/calm2.mp3'],
-    'sad': ['static/audio/sad1.mp3', 'static/audio/sad2.mp3'],
-    'energetic': ['static/audio/energetic1.mp3', 'static/audio/energetic2.mp3']
+    'happy': ['static/audio/happy1.wav', 'static/audio/happy2.wav'],
+    'calm': ['static/audio/calm1.wav', 'static/audio/calm2.wav'],
+    'sad': ['static/audio/sad1.wav', 'static/audio/sad2.wav'],
+    'energetic': ['static/audio/energetic1.wav', 'static/audio/energetic2.wav']
 }
 
 with app.app_context():
