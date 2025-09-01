@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>History — Sketch Mood</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <style>
+      .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .dark .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); }
+      .history-card { 
+        transition: all 0.3s ease; 
+        border-left: 4px solid transparent;
+      }
+      .history-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        border-left-color: #8b5cf6;
+      }
+      .dark .history-card:hover { 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+      }
+      .mood-happy { border-left-color: #fbbf24; }
+      .mood-calm { border-left-color: #60a5fa; }
+      .mood-sad { border-left-color: #a78bfa; }
+      .mood-energetic { border-left-color: #f87171; }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 min-h-screen p-6 transition-all duration-300">
+    <!-- Dark Mode Toggle -->
+    <button id="darkModeToggle" class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 border dark:border-gray-700">
+      <svg class="w-5 h-5 text-yellow-500 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+      </svg>
+      <svg class="w-5 h-5 text-blue-400 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+      </svg>
+    </button>
+
+    <div class="max-w-5xl mx-auto bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700/30">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+            📊 Mood History
+          </h1>
+          <p class="text-gray-600 dark:text-gray-300">Your creative journey through emotions</p>
+        </div>
+        <a href="/" class="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back to Sketch
+        </a>
+      </div>
+      
+      <div class="mb-6">
+        {% if entries %}
+          <div class="grid gap-4">
+            {% for entry in entries %}
+              <div class="history-card mood-{{ entry.mood_pred }} bg-white dark:bg-gray-700 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-600">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-4">
+                    <div class="text-3xl">
+                      {% if entry.mood_pred == 'happy' %}😊
+                      {% elif entry.mood_pred == 'calm' %}😌
+                      {% elif entry.mood_pred == 'sad' %}😢
+                      {% elif entry.mood_pred == 'energetic' %}⚡
+                      {% else %}🙂{% endif %}
+                    </div>
+                    <div>
+                      <span class="text-xl font-bold text-gray-800 dark:text-white capitalize">{{ entry.mood_pred }}</span>
+                      <div class="flex items-center gap-4 mt-1">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">
+                          Confidence: <span class="font-semibold text-purple-600 dark:text-purple-400">{{ "%.1f"|format(entry.confidence * 100) }}%</span>
+                        </span>
+                        {% if entry.rating %}
+                          <span class="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+                            Rating: {% for i in range(entry.rating) %}⭐{% endfor %}
+                          </span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
+                      {{ entry.timestamp.strftime('%m/%d %H:%M') }}
+                    </span>
+                  </div>
+                </div>
+                
+                {% if entry.track_path %}
+                  <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-600 rounded-lg">
+                    <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      🎵 <strong>Track:</strong> {{ entry.track_path.split('/')[-1] }}
+                    </span>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-16">
+            <div class="text-8xl mb-6">🎨</div>
+            <h3 class="text-2xl font-bold text-gray-600 dark:text-gray-300 mb-4">No mood history yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-8">Start by creating your first sketch and discovering your mood!</p>
+            <a href="/" class="px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-bold transition-all duration-200 hover:scale-105 shadow-lg">
+              Create Your First Sketch ✨
+            </a>
+          </div>
+        {% endif %}
+        
+        {% if entries %}
+          <div class="mt-8 text-center">
+            <a href="/export.csv" class="inline-flex items-center gap-3 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Export as CSV
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script>
+      // Dark mode functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          html.classList.add('dark');
+        }
+
+        if (darkModeToggle) {
+          darkModeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

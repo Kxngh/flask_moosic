@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sketch → Mood</title>
+    <script src="https://unpkg.com/howler@2.2.3/dist/howler.core.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <style>
+      canvas { border: 2px dashed #cbd5e1; touch-action: none; transition: all 0.3s ease; }
+      .dark canvas { border-color: #475569; }
+      .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .dark .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%); }
+      .mood-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+      .mood-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+      .dark .mood-card:hover { box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+      .btn-primary { 
+        background: linear-gradient(45deg, #6366f1, #8b5cf6); 
+        transition: all 0.3s ease;
+      }
+      .btn-primary:hover { 
+        background: linear-gradient(45deg, #4f46e5, #7c3aed); 
+        transform: translateY(-1px);
+      }
+      .dark-toggle {
+        transition: all 0.3s ease;
+      }
+      .animate-pulse-slow {
+        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .color-btn {
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .color-btn:hover {
+        transform: scale(1.1);
+      }
+      .color-btn.active {
+        box-shadow: 0 0 0 3px #3b82f6;
+        transform: scale(1.1);
+      }
+      /* Custom slider styling */
+      #brushSize::-webkit-slider-thumb {
+        appearance: none;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        background: #8b5cf6;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      #brushSize::-moz-range-thumb {
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        background: #8b5cf6;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center p-6 transition-all duration-300">
+    <!-- Dark Mode Toggle -->
+    <button id="darkModeToggle" class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 border dark:border-gray-700">
+      <svg class="w-5 h-5 text-yellow-500 dark:hidden" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
+      </svg>
+      <svg class="w-5 h-5 text-blue-400 hidden dark:block" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+      </svg>
+    </button>
+
+    <div class="max-w-4xl w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700/30">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+          ✨ Sketch → Mood ✨
+        </h1>
+        <p class="text-gray-600 dark:text-gray-300 text-lg">Draw your feelings, discover your mood through music</p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Drawing Section -->
+        <div class="space-y-4">
+          <div class="relative">
+            <canvas id="sketch" width="512" height="512" class="w-full bg-white dark:bg-gray-700 rounded-xl shadow-inner"></canvas>
+            <div id="canvasOverlay" class="absolute inset-0 rounded-xl bg-gradient-to-br from-transparent to-purple-100/20 dark:to-purple-900/20 pointer-events-none"></div>
+          </div>
+          
+          <div class="flex gap-3 justify-center flex-wrap">
+            <button id="clear" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+              🗑️ Clear
+            </button>
+            <button id="eraser" class="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+              🧽 Eraser
+            </button>
+            <button id="pen" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+              ✏️ Pen
+            </button>
+            <button id="submit" class="px-6 py-2 rounded-lg btn-primary text-white font-bold shadow-lg animate-pulse-slow">
+              🔮 Predict Mood
+            </button>
+          </div>
+          
+          <!-- Color Palette -->
+          <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+            <div class="text-center mb-3">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">🎨 Color Palette</span>
+            </div>
+                        <div class="flex justify-center gap-2 flex-wrap max-w-md mx-auto">
+              <!-- Row 1: Basic Colors -->
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200 ring-2 ring-blue-500" 
+                      style="background-color: #000000" data-color="#000000" title="Black"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #ffffff" data-color="#ffffff" title="White"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #6b7280" data-color="#6b7280" title="Gray"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #374151" data-color="#374151" title="Dark Gray"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #92400e" data-color="#92400e" title="Brown"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #fbbf24" data-color="#fbbf24" title="Gold"></button>
+              
+              <!-- Row 2: Warm Colors -->
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #dc2626" data-color="#dc2626" title="Red"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #ea580c" data-color="#ea580c" title="Orange Red"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #f97316" data-color="#f97316" title="Orange"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #eab308" data-color="#eab308" title="Yellow"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #84cc16" data-color="#84cc16" title="Lime"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #22c55e" data-color="#22c55e" title="Green"></button>
+              
+              <!-- Row 3: Cool Colors -->
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #10b981" data-color="#10b981" title="Emerald"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #06b6d4" data-color="#06b6d4" title="Cyan"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #3b82f6" data-color="#3b82f6" title="Blue"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #6366f1" data-color="#6366f1" title="Indigo"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #8b5cf6" data-color="#8b5cf6" title="Purple"></button>
+              <button class="color-btn w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-all duration-200" 
+                      style="background-color: #ec4899" data-color="#ec4899" title="Pink"></button>
+            </div>
+            
+            <!-- Brush Size Slider -->
+            <div class="mt-4 flex items-center justify-center gap-3">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Brush Size:</span>
+              <input type="range" id="brushSize" min="1" max="20" value="3" 
+                     class="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600">
+              <span id="brushSizeDisplay" class="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[2rem]">3px</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="space-y-6">
+          <div id="card" class="mood-card p-6 border border-gray-200 dark:border-gray-600 rounded-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 shadow-lg">
+            <div id="resultArea" class="opacity-60 text-center py-8">
+              <div class="text-6xl mb-4">🎨</div>
+              <p class="text-gray-600 dark:text-gray-300 text-lg">
+                Draw something magical and press <strong class="text-purple-600 dark:text-purple-400">Predict Mood</strong>
+              </p>
+            </div>
+            
+            <div id="moodCard" class="hidden text-center">
+              <div class="flex items-center justify-center gap-6 mb-6">
+                <div id="emoji" class="text-7xl animate-bounce"></div>
+                <div class="text-left">
+                  <h2 id="moodText" class="text-3xl font-bold text-gray-800 dark:text-white mb-2"></h2>
+                  <p id="confText" class="text-lg text-gray-600 dark:text-gray-300"></p>
+                </div>
+              </div>
+              
+              <div class="flex items-center justify-center gap-4 mb-6">
+                <button id="playBtn" class="px-6 py-3 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+                  🎵 Play Music
+                </button>
+                <button id="stopBtn" class="px-6 py-3 rounded-lg bg-gray-400 hover:bg-gray-500 text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+                  ⏹️ Stop
+                </button>
+              </div>
+              
+              <div class="flex items-center justify-center gap-3 mb-4">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Rate this prediction:</label>
+                <select id="rating" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 transition-all">
+                  <option value="">⭐</option>
+                  <option value="1">⭐</option>
+                  <option value="2">⭐⭐</option>
+                  <option value="3">⭐⭐⭐</option>
+                  <option value="4">⭐⭐⭐⭐</option>
+                  <option value="5">⭐⭐⭐⭐⭐</option>
+                </select>
+                <button id="submitRating" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-medium transition-all duration-200 hover:scale-105 shadow-lg">
+                  Send
+                </button>
+              </div>
+              
+              <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
+                <a href="/history" class="inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors">
+                  📊 View History
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-800">
+            <p class="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+              <strong>🚀 Ready for production:</strong> This app includes <code class="px-1 py-0.5 bg-blue-200 dark:bg-blue-800 rounded text-xs">render.yaml</code> and <code class="px-1 py-0.5 bg-blue-200 dark:bg-blue-800 rounded text-xs">Procfile</code>. 
+              Replace the dummy model with your trained SavedModel at <code class="px-1 py-0.5 bg-blue-200 dark:bg-blue-800 rounded text-xs">models/sketch_mood/</code> when ready.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>
